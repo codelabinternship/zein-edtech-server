@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'zein_app',
-    'telegram_bot',
+    'telegram_bot.apps.TelegramBotConfig',  # Use this exact format
     'corsheaders',
 ]
 
