@@ -14,6 +14,8 @@ class TelegramBotConfig(AppConfig):
     name = 'telegram_bot'
 
     def ready(self):
+        print("TelegramBotConfig ready() method called")
+        #
         from django.db.models.signals import post_migrate
         from django.dispatch import receiver
 
