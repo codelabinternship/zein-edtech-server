@@ -717,7 +717,7 @@ from .models import CustomUser
 from .serializers import CustomUserSerializer, ResultSerializer
 from .pagination import CustomPagination
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-
+from rest_framework.permissions import AllowAny
 # from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .models import Result
 
@@ -725,8 +725,8 @@ from .models import Result
 class ResultViewSet(viewsets.ModelViewSet):
     queryset = Result.objects.all()
     serializer_class = ResultSerializer
-    parser_classes = [MultiPartParser, FormParser, JSONParser, AllowAny]
-
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    permission_classes = [AllowAny]
 
 # class ResultsViewSet(viewsets.ModelViewSet):
 #     queryset = Results.objects.all()

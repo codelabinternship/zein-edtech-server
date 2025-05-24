@@ -5,8 +5,30 @@ from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.core.files.storage import default_storage
+from django.db.models.signals import pre_save
+from zein_app.storage import CustomS3Storage
 
+def delete_image_if_changed(sender, instance, **kwargs):
+    if not instance.pk:
+        return
+    try:
+        old_instance = sender.objects.get(pk=instance.pk)
+        for field in instance._meta.fields:
+            if isinstance(field, models.ImageField):
+                old_file = getattr(old_instance, field.name)
+                new_file = getattr(instance, field.name)
+                if old_file and old_file != new_file:
+                    try:
+                        default_storage.delete(old_file.path)
+                    except Exception:
+                        pass
+    except sender.DoesNotExist:
+        pass
 
+@receiver(pre_save)
+def handle_image_updates(sender, instance, **kwargs):
+    if hasattr(instance, '_meta') and any(isinstance(f, models.ImageField) for f in instance._meta.fields):
+        delete_image_if_changed(sender, instance, **kwargs)
 class CustomUser(AbstractUser):
     ROLE_CHOICES = (
         ('admin', 'Admin'),
@@ -88,7 +110,7 @@ class Subject(models.Model):
     name = models.CharField(max_length=100)
     title_ru = models.TextField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to="subjects/", blank=True, null=True)
+    image = models.ImageField(upload_to="subjects/", blank=True, null=True,storage=CustomS3Storage)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -104,7 +126,7 @@ class Topic(models.Model):
     )
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to="topics/", blank=True, null=True)
+    image = models.ImageField(upload_to="topics/", blank=True, null=True,storage=CustomS3Storage)
     created_at = models.DateTimeField(auto_now_add=True)
     # is_active = models.BooleanField(default=True)
 
@@ -122,7 +144,7 @@ class Question(models.Model):
     )
     text = models.TextField()
     explanation = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to="questions/", blank=True, null=True)
+    image = models.ImageField(upload_to="questions/", blank=True, null=True,storage=CustomS3Storage)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -246,7 +268,7 @@ class Teacher(models.Model):
     name = models.CharField(max_length=255)
     subject = models.CharField(max_length=255)
     experience_years = models.PositiveIntegerField()
-    photo = models.ImageField(upload_to="teachers/")
+    photo = models.ImageField(upload_to="teachers/",storage=CustomS3Storage)
 
     def __str__(self):
         return self.name
@@ -284,7 +306,7 @@ class FAQ(models.Model):
 class Contact(models.Model):
     phone = models.CharField(max_length=255, unique=True,default="+998")
     email = models.EmailField(max_length=255, unique=True,default="")
-    hero_banner = models.ImageField(upload_to="contact/banner/",null=True)
+    hero_banner = models.ImageField(upload_to="contact/banner/",null=True,storage=CustomS3Storage)
     telegram = models.CharField(max_length=255,default="t.me/")
     instagram = models.CharField(max_length=255,default="instagram.com/")
 
@@ -325,7 +347,7 @@ class Request(models.Model):
 class Result(models.Model):
     user = models.CharField(max_length=100)
     language = models.CharField(max_length=20)
-    image = models.ImageField(upload_to="exam-results/", default="/placeholder.svg")
+    image = models.ImageField(upload_to="exam-results/", default="/placeholder.svg",storage=CustomS3Storage)
     proficiency_level = models.CharField(max_length=10)
     exam_type = models.CharField(max_length=20)  # IELTS, TOEFL, TOPIK ...
     exam_score = models.DecimalField(
@@ -345,65 +367,7 @@ class SEO(models.Model):
     metaTitle = models.CharField(max_length=255)
     metaDescription = models.TextField()
     keywords = models.CharField(max_length=512)
-    ogImage = models.ImageField(upload_to="seo/og_images/", blank=True, null=True)
+    ogImage = models.ImageField(upload_to="seo/og_images/", blank=True, null=True,storage=CustomS3Storage)
 
     def __str__(self):
         return self.metaTitle
-
-
-# Signal receivers for image deletion
-@receiver(pre_delete, sender=Subject)
-def delete_subject_image(sender, instance, **kwargs):
-    if instance.image:
-        try:
-            default_storage.delete(instance.image.path)
-        except Exception:
-            pass
-
-@receiver(pre_delete, sender=Topic)
-def delete_topic_image(sender, instance, **kwargs):
-    if instance.image:
-        try:
-            default_storage.delete(instance.image.path)
-        except Exception:
-            pass
-
-@receiver(pre_delete, sender=Question)
-def delete_question_image(sender, instance, **kwargs):
-    if instance.image:
-        try:
-            default_storage.delete(instance.image.path)
-        except Exception:
-            pass
-
-@receiver(pre_delete, sender=Teacher)
-def delete_teacher_photo(sender, instance, **kwargs):
-    if instance.photo:
-        try:
-            default_storage.delete(instance.photo.path)
-        except Exception:
-            pass
-
-@receiver(pre_delete, sender=Contact)
-def delete_contact_banner(sender, instance, **kwargs):
-    if instance.hero_banner:
-        try:
-            default_storage.delete(instance.hero_banner.path)
-        except Exception:
-            pass
-
-@receiver(pre_delete, sender=Result)
-def delete_result_image(sender, instance, **kwargs):
-    if instance.image:
-        try:
-            default_storage.delete(instance.image.path)
-        except Exception:
-            pass
-
-@receiver(pre_delete, sender=SEO)
-def delete_seo_image(sender, instance, **kwargs):
-    if instance.ogImage:
-        try:
-            default_storage.delete(instance.ogImage.path)
-        except Exception:
-            pass
