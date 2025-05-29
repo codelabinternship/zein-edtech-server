@@ -11,15 +11,13 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 from ..models import TelegramUser
 from .api_service import APIService
 
-
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-
-LANGUAGE_SELECTION, PHONE_NUMBER, FULL_NAME, SUBJECT_SELECTION, TOPIC_SELECTION, QUIZ_SELECTION, QUESTION, ANSWER = range(8)
-
+LANGUAGE_SELECTION, PHONE_NUMBER, FULL_NAME, SUBJECT_SELECTION, TOPIC_SELECTION, QUIZ_SELECTION, QUESTION, ANSWER = range(
+    8)
 
 LANGUAGES = {
     "uz": "Узбекский",
@@ -46,7 +44,6 @@ TEXTS = {
     },
 
 }
-
 
 for lang in LANGUAGES:
     if lang != "ru":
@@ -77,18 +74,15 @@ class BotService:
                     CallbackQueryHandler(self.restart_quiz_handler, pattern=r"^restart_quiz_")
                 ],
                 QUESTION: [
-                    # CallbackQueryHandler is NOT suitable here for poll answers
-                    # Instead, use the PollAnswerHandler added separately
                 ],
                 ANSWER: [CallbackQueryHandler(self.next_question_handler, pattern=r"^next_question$")]
             },
             fallbacks=[CommandHandler("cancel", self.cancel_command)]
         )
 
-        # Add handlers
         self.application.add_handler(CallbackQueryHandler(self.restart_subjects_handler, pattern=r"^restart_subjects$"))
         self.application.add_handler(CallbackQueryHandler(self.restart_quiz_handler, pattern=r"^restart_quiz_"))
-        self.application.add_handler(PollAnswerHandler(self.poll_answer_handler))  # Use PollAnswerHandler for polls
+        self.application.add_handler(PollAnswerHandler(self.poll_answer_handler))
 
         self.application.add_handler(conv_handler)
         self.application.run_polling()
@@ -138,8 +132,6 @@ class BotService:
             await update.callback_query.message.reply_text("Произошла ошибка при переходе к следующему вопросу.")
             return ConversationHandler.END
 
-
-
     @staticmethod
     @transaction.atomic
     def _get_or_create_telegram_user(telegram_id, chat_id, username, first_name, last_name, language_code):
@@ -184,6 +176,9 @@ class BotService:
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         user = update.effective_user
+        context.user_data["chat_id"] = update.effective_chat.id
+        context.user_data["telegram_id"] = update.effective_user.id
+        context.user_data["username"] = update.effective_user.username or update.effective_user.first_name
 
         try:
             telegram_user, created = await sync_to_async(self._get_or_create_telegram_user)(
@@ -195,9 +190,7 @@ class BotService:
                 language_code=user.language_code or 'ru'
             )
 
-
             context.user_data["telegram_user_id"] = telegram_user.id
-
 
             keyboard = []
             row = []
@@ -230,7 +223,6 @@ class BotService:
             telegram_user_id = context.user_data.get("telegram_user_id")
             if telegram_user_id:
                 await sync_to_async(self._update_telegram_user_language)(telegram_user_id, lang_code)
-
 
             keyboard = ReplyKeyboardMarkup(
                 [[KeyboardButton(text=TEXTS[lang_code]["share_phone"], request_contact=True)]],
@@ -345,81 +337,184 @@ class BotService:
 
 
 
-
-
-
     async def show_question(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-       try:
-        quiz_data = context.user_data["quiz_data"]
-        idx = context.user_data.get("current_question_index", 0)
+        try:
+            quiz_data = context.user_data["quiz_data"]
+            idx = context.user_data.get("current_question_index", 0)
 
-        if idx >= len(quiz_data["questions"]):
-            return await self.show_quiz_results(update, context)
+            if idx >= len(quiz_data["questions"]):
+                return await self.show_quiz_results(update, context)
 
-        q = quiz_data["questions"][idx]
-        text = f"[{idx + 1}/{len(quiz_data['questions'])}] {q['text']}"
-        options = [a["text"] for a in q["answers"]]
-        correct_option = next(i for i, a in enumerate(q["answers"]) if a.get("is_correct"))
+            q = quiz_data["questions"][idx]
+            text = f"[{idx + 1}/{len(quiz_data['questions'])}] {q['text']}"
+            options = [a["text"] for a in q["answers"]]
+            correct_option = next(i for i, a in enumerate(q["answers"]) if a.get("is_correct"))
 
-        message = await update.effective_chat.send_poll(
-            question=text,
-            options=options,
-            type="quiz",
-            correct_option_id=correct_option,
-            is_anonymous=False,
-            explanation="Смотри ответ ниже"
-        )
-        polls = context.user_data.setdefault("polls_mapping", {})
-        polls[message.poll.id] = idx
+            explanation = q.get("explanation", "") or ""
 
-        context.user_data["current_question_index"] = idx + 1
+            chat_id = None
 
-        return QUESTION
-       except Exception as e:
-           print(e)
+            if "chat_id" in context.user_data:
+                chat_id = context.user_data["chat_id"]
+                logger.info(f"Получен chat_id из context.user_data: {chat_id}")
+
+            elif update and update.effective_chat:
+                chat_id = update.effective_chat.id
+                logger.info(f"Получен chat_id из update.effective_chat: {chat_id}")
+
+            elif update and update.callback_query and update.callback_query.message:
+                chat_id = update.callback_query.message.chat_id
+                logger.info(f"Получен chat_id из update.callback_query: {chat_id}")
+
+            elif update and hasattr(update, "message") and update.message:
+                chat_id = update.message.chat_id
+                logger.info(f"Получен chat_id из update.message: {chat_id}")
+
+            elif "telegram_id" in context.user_data:
+                @sync_to_async
+                def get_chat_id_from_db(telegram_id):
+                    try:
+                        user = TelegramUser.objects.filter(telegram_id=telegram_id).first()
+                        if user and hasattr(user, "chat_id"):
+                            return user.chat_id
+                        return None
+                    except Exception as e:
+                        logger.error(f"Ошибка при получении chat_id из БД: {e}")
+                        return None
+
+                chat_id = await get_chat_id_from_db(context.user_data["telegram_id"])
+                if chat_id:
+                    logger.info(f"Получен chat_id из базы данных: {chat_id}")
+
+            if not chat_id and hasattr(context.bot, "active_conversations"):
+                for user_id, conv_data in context.bot.active_conversations.items():
+                    if user_id == context.user_data.get("telegram_id"):
+                        chat_id = conv_data.get("chat_id")
+                        if chat_id:
+                            logger.info(f"Получен chat_id из active_conversations: {chat_id}")
+                            break
+
+            if not chat_id:
+                logger.error(
+                    f"Не удалось определить chat_id для пользователя: {context.user_data.get('telegram_id', 'Unknown')}")
+                return ConversationHandler.END
+
+            context.user_data["chat_id"] = chat_id
+
+            message = await context.bot.send_poll(
+                chat_id=chat_id,
+                question=text,
+                options=options,
+                type="quiz",
+                correct_option_id=correct_option,
+                is_anonymous=False,
+                explanation=explanation
+            )
+
+            polls = context.user_data.setdefault("polls_mapping", {})
+            polls[message.poll.id] = idx
+
+            context.user_data["current_question_index"] = idx + 1
+
+            return QUESTION
+        except Exception as e:
+            logger.error(f"Ошибка в show_question: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return ConversationHandler.END
 
     # async def show_question(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     #     try:
-    #         quiz_data = context.user_data.get("quiz_data")
-    #         current_index = context.user_data.get("current_question_index", 0)
-    #         lang_code = context.user_data.get("language", "ru")
+    #         quiz_data = context.user_data["quiz_data"]
+    #         idx = context.user_data.get("current_question_index", 0)
     #
-    #         if current_index >= len(quiz_data.get('questions', [])):
+    #         if idx >= len(quiz_data["questions"]):
     #             return await self.show_quiz_results(update, context)
     #
-    #         question = quiz_data['questions'][current_index]
-    #         context.user_data["current_question"] = question
+    #         q = quiz_data["questions"][idx]
+    #         text = f"[{idx + 1}/{len(quiz_data['questions'])}] {q['text']}"
+    #         options = [a["text"] for a in q["answers"]]
+    #         correct_option = next(i for i, a in enumerate(q["answers"]) if a.get("is_correct"))
+    #
+    #         chat_id = None
+    #
+    #         if "chat_id" in context.user_data:
+    #             chat_id = context.user_data["chat_id"]
+    #             logger.info(f"Получен chat_id из context.user_data: {chat_id}")
+    #
+    #         elif update and update.effective_chat:
+    #             chat_id = update.effective_chat.id
+    #             logger.info(f"Получен chat_id из update.effective_chat: {chat_id}")
     #
     #
-    #         question_text = f"[{current_index + 1}/{context.user_data['total_questions']}] {question['text']}"
-    #         options = [answer['text'] for answer in question['answers']]
+    #         elif update and update.callback_query and update.callback_query.message:
+    #             chat_id = update.callback_query.message.chat_id
+    #             logger.info(f"Получен chat_id из update.callback_query: {chat_id}")
     #
     #
-    #         correct_option_id = next(
-    #             (i for i, answer in enumerate(question['answers']) if answer.get('is_correct')), None
-    #         )
+    #         elif update and hasattr(update, "message") and update.message:
+    #             chat_id = update.message.chat_id
+    #             logger.info(f"Получен chat_id из update.message: {chat_id}")
     #
     #
-    #         await update.effective_chat.send_poll(
-    #             question=question_text,
+    #         elif "telegram_id" in context.user_data:
+    #             @sync_to_async
+    #             def get_chat_id_from_db(telegram_id):
+    #                 try:
+    #                     user = TelegramUser.objects.filter(telegram_id=telegram_id).first()
+    #                     if user and hasattr(user, "chat_id"):
+    #                         return user.chat_id
+    #                     return None
+    #                 except Exception as e:
+    #                     logger.error(f"Ошибка при получении chat_id из БД: {e}")
+    #                     return None
+    #
+    #             chat_id = await get_chat_id_from_db(context.user_data["telegram_id"])
+    #             if chat_id:
+    #                 logger.info(f"Получен chat_id из базы данных: {chat_id}")
+    #
+    #         if not chat_id and hasattr(context.bot, "active_conversations"):
+    #             for user_id, conv_data in context.bot.active_conversations.items():
+    #                 if user_id == context.user_data.get("telegram_id"):
+    #                     chat_id = conv_data.get("chat_id")
+    #                     if chat_id:
+    #                         logger.info(f"Получен chat_id из active_conversations: {chat_id}")
+    #                         break
+    #
+    #
+    #         if not chat_id:
+    #             logger.error(
+    #                 f"Не удалось определить chat_id для пользователя: {context.user_data.get('telegram_id', 'Unknown')}")
+    #             # admin_chat_id = REQUEST_TELEGRAM_ADMIN_CHAT_ID
+    #             # await context.bot.send_message(
+    #             #     chat_id=admin_chat_id,
+    #             #     text=f"Ошибка: Не удалось определить chat_id для пользователя {context.user_data.get('username', 'Unknown')}"
+    #             # )
+    #             return ConversationHandler.END
+    #
+    #         context.user_data["chat_id"] = chat_id
+    #
+    #         message = await context.bot.send_poll(
+    #             chat_id=chat_id,
+    #             question=text,
     #             options=options,
     #             type="quiz",
-    #             correct_option_id=correct_option_id,
+    #             correct_option_id=correct_option,
     #             is_anonymous=False,
-    #             explanation="Выберите правильный ответ"
+    #             explanation="Смотри ответ ниже"
     #         )
     #
+    #         polls = context.user_data.setdefault("polls_mapping", {})
+    #         polls[message.poll.id] = idx
     #
-    #         context.user_data["current_question_index"] = current_index + 1
+    #         context.user_data["current_question_index"] = idx + 1
     #
     #         return QUESTION
-    #
     #     except Exception as e:
     #         logger.error(f"Ошибка в show_question: {e}")
-    #         await update.effective_chat.send_message("Произошла ошибка при отображении вопроса.")
+    #         import traceback
+    #         logger.error(traceback.format_exc())
     #         return ConversationHandler.END
-
-
 
     async def topic_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         try:
@@ -447,7 +542,6 @@ class BotService:
                 await query.edit_message_text("Не удалось запустить викторину. Попробуйте позже.")
                 return ConversationHandler.END
 
-
             quiz_info = TEXTS[lang_code]["quiz_info"].format(
                 getattr(quiz, 'name', ''),
                 getattr(quiz, 'description', ''),
@@ -464,13 +558,6 @@ class BotService:
             logger.error(f"Ошибка в topic_handler: {e}")
             await update.callback_query.message.reply_text("Произошла ошибка. Попробуйте позже.")
             return ConversationHandler.END
-
-
-
-
-
-
-
 
     async def quiz_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         try:
@@ -505,6 +592,8 @@ class BotService:
             return ConversationHandler.END
 
     async def restart_quiz_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+        context.user_data["chat_id"] = update.effective_chat.id
+        context.user_data["telegram_id"] = update.effective_user.id
         try:
             query = update.callback_query
             await query.answer()
@@ -537,8 +626,6 @@ class BotService:
             await update.callback_query.message.reply_text("Произошла ошибка. Пожалуйста, попробуйте позже.")
             return ConversationHandler.END
 
-
-
     async def poll_answer_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         try:
             pa: PollAnswer = update.poll_answer
@@ -565,21 +652,50 @@ class BotService:
 
             @sync_to_async
             def save_to_db():
-                from zein_app.models import UserAnswer, Quiz, Question, Choice
+                from zein_app.models import UserAnswer, Quiz, Question, Choice, Topic
                 telegram_user = TelegramUser.objects.get(telegram_id=user_id)
                 user_instance = telegram_user.user
 
                 question_instance = Question.objects.get(id=q["id"])
                 choice_instance = Choice.objects.get(id=q["answers"][selected_option]["id"])
 
-                quiz_instance = Quiz.objects.get(user=user_instance)  # Adjust logic to fetch the correct Quiz instance
-                print(quiz_instance)
-                UserAnswer.objects.create(
+                topic_id = context.user_data.get("selected_topic_id")
+                if not topic_id:
+                    topic_id = question_instance.topic.id
+
+                try:
+                    quiz_instance = Quiz.objects.get(
+                        user=user_instance,
+                        topic_id=topic_id,
+                        status__in=['active', 'in_progress']
+                    )
+                except Quiz.DoesNotExist:
+                    quiz_instance = Quiz.objects.filter(
+                        user=user_instance,
+                        topic_id=topic_id
+                    ).order_by('-created_at').first()
+
+                    if not quiz_instance:
+                        logger.error(f"Не найдена викторина для пользователя {user_instance.id} и темы {topic_id}")
+                        return
+                except Quiz.MultipleObjectsReturned:
+                    quiz_instance = Quiz.objects.filter(
+                        user=user_instance,
+                        topic_id=topic_id,
+                        status__in=['active', 'in_progress']
+                    ).order_by('-created_at').first()
+
+                print(f"Используется викторина: {quiz_instance.id}")
+
+                UserAnswer.objects.update_or_create(
                     quiz=quiz_instance,
                     question=question_instance,
-                    selected_choice=choice_instance,
-                    is_correct=is_correct
+                    defaults={
+                        'selected_choice': choice_instance,
+                        'is_correct': is_correct
+                    }
                 )
+
             await save_to_db()
 
             total = context.user_data["total_questions"]
@@ -591,136 +707,145 @@ class BotService:
 
         except Exception as e:
             logger.error(f"Ошибка в poll_answer_handler: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             # await context.bot.send_message("Произошла ошибка при обработке ответа на опрос.")
             return ConversationHandler.END
 
-    # async def answer_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # async def poll_answer_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     #     try:
-    #         query = update.callback_query
-    #         await query.answer()
+    #         pa: PollAnswer = update.poll_answer
+    #         user_id = pa.user.id
+    #         poll_id = pa.poll_id
+    #         selected_option = pa.option_ids[0]
+    #         polls_map = context.user_data.get("polls_mapping", {})
+    #         question_index = polls_map.get(poll_id)
+    #         if question_index is None:
+    #             return QUESTION
     #
-    #         _, question_index, answer_id = query.data.split("_")
-    #         question_index = int(question_index)
-    #         answer_id = int(answer_id)
+    #         q = context.user_data["quiz_data"]["questions"][question_index]
+    #         correct_option = next(i for i, a in enumerate(q["answers"]) if a.get("is_correct"))
+    #         is_correct = (selected_option == correct_option)
     #
-    #         quiz_data = context.user_data.get("quiz_data")
-    #         question = quiz_data['questions'][question_index]
-    #
-    #         selected_answer = None
-    #         is_correct = False
-    #         for answer in question.get('answers', []):
-    #             if answer['id'] == answer_id:
-    #                 selected_answer = answer
-    #                 is_correct = answer.get('is_correct', False)
-    #                 break
-    #
-    #         context.user_data["user_answers"][question_index] = {
-    #             'question_id': question['id'],
-    #             'answer_id': answer_id,
-    #             'is_correct': is_correct
+    #         ua = context.user_data.setdefault("user_answers", {})
+    #         ua[question_index] = {
+    #             "question_id": q["id"],
+    #             "answer_id": q["answers"][selected_option]["id"],
+    #             "is_correct": is_correct
     #         }
-    #
     #         if is_correct:
-    #             context.user_data["correct_answers"] += 1
+    #             context.user_data["correct_answers"] = context.user_data.get("correct_answers", 0) + 1
     #
-    #         lang_code = context.user_data.get("language", "ru")
-    #         if is_correct:
-    #             result_text = "✅ Правильно!"
+    #         @sync_to_async
+    #         def save_to_db():
+    #             from zein_app.models import UserAnswer, Quiz, Question, Choice
+    #             telegram_user = TelegramUser.objects.get(telegram_id=user_id)
+    #             user_instance = telegram_user.user
+    #
+    #             question_instance = Question.objects.get(id=q["id"])
+    #             choice_instance = Choice.objects.get(id=q["answers"][selected_option]["id"])
+    #
+    #             quiz_instance = Quiz.objects.get(user=user_instance)
+    #             print(quiz_instance)
+    #
+    #             UserAnswer.objects.update_or_create(
+    #                 quiz=quiz_instance,
+    #                 question=question_instance,
+    #                 defaults={
+    #                     'selected_choice': choice_instance,
+    #                     'is_correct': is_correct
+    #                 }
+    #             )
+    #
+    #         await save_to_db()
+    #
+    #         total = context.user_data["total_questions"]
+    #         answered = len(ua)
+    #         if answered < total:
+    #             return await self.show_question(update, context)
     #         else:
-    #             correct_answer = next((a['text'] for a in question.get('answers', []) if a.get('is_correct')),
-    #                                   "Не найдено")
-    #             result_text = f"❌ Неправильно! Правильный ответ: {correct_answer}"
-    #
-    #         keyboard = [[InlineKeyboardButton("Следующий вопрос", callback_data="next_question")]]
-    #         reply_markup = InlineKeyboardMarkup(keyboard)
-    #
-    #         await query.edit_message_text(
-    #             text=f"{question['text']}\n\nВаш ответ: {selected_answer['text']}\n\n{result_text}",
-    #             reply_markup=reply_markup
-    #         )
-    #
-    #         return ANSWER
+    #             return await self.show_quiz_results(update, context)
     #
     #     except Exception as e:
-    #         logger.error(f"Ошибка в answer_handler: {e}")
-    #         await update.callback_query.message.reply_text("Произошла ошибка при обработке ответа.")
+    #         logger.error(f"Ошибка в poll_answer_handler: {e}")
+    #         import traceback
+    #         logger.error(traceback.format_exc())
+    #         # await context.bot.send_message("Произошла ошибка при обработке ответа на опрос.")
     #         return ConversationHandler.END
 
-
-    #
     async def cancel_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await update.message.reply_text("Операция отменена.")
         return ConversationHandler.END
 
+    async def show_quiz_results(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+        try:
+            quiz_data = context.user_data.get("quiz_data")
+            correct_answers = context.user_data.get("correct_answers", 0)
+            total_questions = context.user_data.get("total_questions", 0)
+            lang_code = context.user_data.get("language", "ru")
+            quiz_id = context.user_data.get("quiz_id")
 
+            @sync_to_async
+            def save_quiz_results_sync():
+                return APIService.save_quiz_results(
+                    quiz_id=quiz_id,
+                    user_answers=context.user_data.get("user_answers", {}),
+                    correct_answers=correct_answers,
+                    total_questions=total_questions
+                )
 
-async def show_quiz_results(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    try:
-        quiz_data = context.user_data.get("quiz_data")
-        correct_answers = context.user_data.get("correct_answers", 0)
-        total_questions = context.user_data.get("total_questions", 0)
-        lang_code = context.user_data.get("language", "ru")
-        quiz_id = context.user_data.get("quiz_id")
+            await save_quiz_results_sync()
 
+            percentage = (correct_answers / total_questions) * 100 if total_questions > 0 else 0
 
-        @sync_to_async
-        def save_quiz_results_sync():
-            return APIService.save_quiz_results(
-                quiz_id=quiz_id,
-                user_answers=context.user_data.get("user_answers", {}),
-                correct_answers=correct_answers,
-                total_questions=total_questions
-            )
+            if percentage >= 80:
+                message = "Отлично! Вы отлично справились с тестом!"
+            elif percentage >= 60:
+                message = "Хорошо! Вы успешно прошли тест."
+            else:
+                message = "Вам стоит повторить материал и попробовать ещё раз."
 
-        await save_quiz_results_sync()
+            result_text = f"Тест завершен!\n\n" \
+                          f"Правильных  ответов: {correct_answers} из {total_questions}\n" \
+                          f"Процент успеха: {percentage:.1f}%\n\n" \
+                          f"{message}"
 
+            keyboard = [
+                [InlineKeyboardButton("Выбрать другой предмет", callback_data="restart_subjects")],
+                [InlineKeyboardButton("Пройти этот тест снова", callback_data=f"restart_quiz_{quiz_id}")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
 
-        percentage = (correct_answers / total_questions) * 100 if total_questions > 0 else 0
+            chat_id = update.effective_chat.id if update.effective_chat else update.effective_user.id
 
-        if percentage >= 80:
-            message = "Отлично! Вы отлично справились с тестом!"
-        elif percentage >= 60:
-            message = "Хорошо! Вы успешно прошли тест."
-        else:
-            message = "Вам стоит повторить материал и попробовать ещё раз."
+            try:
+                if update.callback_query:
+                    await update.callback_query.edit_message_text(
+                        text=result_text,
+                        reply_markup=reply_markup
+                    )
+                else:
+                    await context.bot.send_message(
+                        chat_id=chat_id,
+                        text=result_text,
+                        reply_markup=reply_markup
+                    )
+            except Exception as e:
+                logger.error(f"Ошибка при отправке результата: {e}")
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text="Произошла ошибка при отображении результатов."
+                )
 
+            return ConversationHandler.END
 
-        result_text = f"Тест завершен!\n\n" \
-                      f"Правильных ответов: {correct_answers} из {total_questions}\n" \
-                      f"Процент успеха: {percentage:.1f}%\n\n" \
-                      f"{message}"
-
-
-        keyboard = [
-            [InlineKeyboardButton("Выбрать другой предмет", callback_data="restart_subjects")],
-            [InlineKeyboardButton("Пройти этот тест снова", callback_data=f"restart_quiz_{quiz_id}")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        if update.callback_query:
-            await update.callback_query.edit_message_text(
-                text=result_text,
-                reply_markup=reply_markup
-            )
-        else:
-            await update.message.reply_text(
-                text=result_text,
-                reply_markup=reply_markup
-            )
-
-        return ConversationHandler.END
-
-    except Exception as e:
-        logger.error(f"Ошибка в show_quiz_results: {e}")
-        if update.callback_query:
-            await update.callback_query.message.reply_text("Произошла ошибка при отображении результатов.")
-        else:
-            await update.message.reply_text("Произошла ошибка при отображении результатов.")
-        return ConversationHandler.END
-
-
-
-
+        except Exception as e:
+            logger.error(f"Ошибка в show_quiz_results: {e}")
+            if update.callback_query:
+                await update.callback_query.message.reply_text("Произошла ошибка при отображении результатов.")
+            else:
+                await update.message.reply_text("Произошла ошибка при отображении результатов.")
+            return ConversationHandler.END
 
 
 import requests

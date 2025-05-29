@@ -37,6 +37,7 @@ class CustomUser(AbstractUser):
     )
     full_name = models.CharField(max_length=255)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='admin')
+    phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -193,9 +194,8 @@ class Quiz(models.Model):
     class Meta:
         ordering = ["-started_at"]
 
-
 class UserAnswer(models.Model):
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="answers")
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     selected_choice = models.ForeignKey(Choice, on_delete=models.CASCADE)
     is_correct = models.BooleanField(default=False)
@@ -205,8 +205,23 @@ class UserAnswer(models.Model):
         return f"{self.quiz.user.username} - {self.question.text[:30]}"
 
     class Meta:
-        ordering = ["quiz", "answered_at"]
-        unique_together = ["quiz", "question"]
+        ordering = ['quiz', 'answered_at']
+        unique_together = ['quiz', 'question']
+
+
+# class UserAnswer(models.Model):
+#     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="answers")
+#     question = models.ForeignKey(Question, on_delete=models.CASCADE)
+#     selected_choice = models.ForeignKey(Choice, on_delete=models.CASCADE)
+#     is_correct = models.BooleanField(default=False)
+#     answered_at = models.DateTimeField(auto_now_add=True)
+#
+#     def __str__(self):
+#         return f"{self.quiz.user.username} - {self.question.text[:30]}"
+#
+#     class Meta:
+#         ordering = ["quiz", "answered_at"]
+#         unique_together = ["quiz", "question"]
 
 
 # class Topic(models.Model):
