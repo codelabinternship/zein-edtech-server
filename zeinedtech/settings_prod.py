@@ -1,5 +1,5 @@
 """
-Production settings for bot_zein project to use on Render with AWS S3.
+Production settings for zeinedtech project to use on Render with AWS S3.
 """
 
 import os
@@ -64,7 +64,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://zein-edtech-server.onrender.com",
 ]
 
-ROOT_URLCONF = 'bot_zein.urls'
+ROOT_URLCONF = 'zeinedtech.urls'
 
 # REST Framework
 REST_FRAMEWORK = {
@@ -100,7 +100,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'bot_zein.wsgi.application'
+WSGI_APPLICATION = 'zeinedtech.wsgi.application'
 
 # Database
 DATABASE_URL = os.environ.get('DATABASE_URL')

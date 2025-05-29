@@ -1,5 +1,5 @@
 """
-WSGI config for bot_zein project.
+WSGI config for zeinedtech project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -17,6 +17,6 @@ load_dotenv(dotenv_path=env_path)
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', os.environ.get('DJANGO_SETTINGS_MODULE', 'bot_zein.settings'))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', os.environ.get('DJANGO_SETTINGS_MODULE', 'zeinedtech.settings'))
 
 application = get_wsgi_application()

@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set Django settings module to production settings
-ENV DJANGO_SETTINGS_MODULE=bot_zein.settings_prod
+ENV DJANGO_SETTINGS_MODULE=zeinedtech.settings_prod
 ENV DJANGO_SKIP_INIT_USERS=1
 
 # Create staticfiles directory
@@ -36,4 +36,4 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Run gunicorn
-CMD gunicorn bot_zein.wsgi:application --bind 0.0.0.0:$PORT
+CMD gunicorn zeinedtech.wsgi:application --bind 0.0.0.0:$PORT

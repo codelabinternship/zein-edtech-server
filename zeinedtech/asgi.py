@@ -1,5 +1,5 @@
 """
-ASGI config for bot_zein project.
+ASGI config for zeinedtech project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 
@@ -17,6 +17,6 @@ load_dotenv(dotenv_path=env_path)
 
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', os.environ.get('DJANGO_SETTINGS_MODULE', 'bot_zein.settings'))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', os.environ.get('DJANGO_SETTINGS_MODULE', 'zeinedtech.settings'))
 
 application = get_asgi_application()
