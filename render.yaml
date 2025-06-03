@@ -4,7 +4,7 @@ services:
     name: quiz-bot-app
     runtime: python
     plan: starter
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py create_default_users
     startCommand: gunicorn zeinedtech.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: DJANGO_SETTINGS_MODULE
