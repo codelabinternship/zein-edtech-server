@@ -47,6 +47,16 @@ AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
 AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN')
+
+# Print AWS configuration for debugging (remove in production)
+if DEBUG:
+    print("AWS Configuration:")
+    print(f"Access Key ID: {'*' * 16 if AWS_ACCESS_KEY_ID else 'Not set'}")
+    print(f"Secret Access Key: {'*' * 16 if AWS_SECRET_ACCESS_KEY else 'Not set'}")
+    print(f"Bucket Name: {AWS_STORAGE_BUCKET_NAME or 'Not set'}")
+    print(f"Region Name: {AWS_S3_REGION_NAME or 'Not set'}")
+    print(f"Custom Domain: {AWS_S3_CUSTOM_DOMAIN or 'Not set'}")
+
 AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',
 }
