@@ -7,12 +7,12 @@ from .views import TelegramBotViewSet, CourseLevelViewSet, TelegramSettingsViewS
 from .views import (
     CustomUserViewSet,
     BadPasswordViewSet,
-    HistoryViewSet,
     CourseViewSet,
     TeacherViewSet,
     FAQViewSet,
     ContactViewSet,
     ResultViewSet,
+    QuizHistoryViewSet
 )
 from .views import RequestCreateAPIView, RequestDetailAPIView, recent_requests
 
@@ -35,7 +35,7 @@ router = DefaultRouter()
 router.register(r"subjects", SubjectViewSet)
 router.register(r"topics", TopicViewSet)
 router.register(r"questions", QuestionViewSet)
-router.register(r"history", HistoryViewSet)
+router.register(r'quiz-history', QuizHistoryViewSet, basename='history')
 router.register(r"users", CustomUserViewSet)
 router.register(r"bad-passwords", BadPasswordViewSet)
 router.register(r"courses", CourseViewSet)

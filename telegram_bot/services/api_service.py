@@ -42,6 +42,22 @@ class APIService:
             return []
 
     @staticmethod
+    def get_subject_by_id(subject_id, language_code='ru'):
+        try:
+            subject = Subject.objects.get(id=subject_id)
+            return subject.name
+        except Subject.DoesNotExist:
+            return 'Неизвестный предмет'
+
+    @staticmethod
+    def get_topic_by_id(topic_id, language_code='ru'):
+        try:
+            topic = Topic.objects.get(id=topic_id)
+            return topic.name
+        except Topic.DoesNotExist:
+            return 'Неизвестная тема'
+
+    @staticmethod
     def get_or_create_quiz(user_id: int, topic_id: int) -> Quiz:
         User = get_user_model()
         try:
@@ -91,37 +107,33 @@ class APIService:
             logger.error(f"Ошибка при получении тестов для темы {topic_id}: {e}")
             return []
 
-
     @staticmethod
     def get_quiz_with_questions(quiz_id, language_code='ru'):
         try:
             quiz = Quiz.objects.get(id=quiz_id)
-            # questions = Question.objects.filter(topic=quiz.topic)
             questions = Question.objects.filter(topic=quiz.topic)
 
             quiz_data = {
                 'id': quiz.id,
-                # 'title': quiz.name,
-                # 'description': quiz.description,
                 'title': quiz.topic.name,
                 'description': quiz.topic.description,
                 'questions': []
             }
 
             for question in questions:
-                # answers = UserAnswer.objects.filter(question=question)
                 choices = Choice.objects.filter(question=question)
                 question_data = {
                     'id': question.id,
                     'text': question.text,
+                    'explanation': question.explanation or "",
                     'answers': [
                         {
-                        'id': choice.id,
-                        'text': choice.text,
-                        'is_correct': choice.is_correct
+                            'id': choice.id,
+                            'text': choice.text,
+                            'is_correct': choice.is_correct
                         }
                         for choice in choices
-                        ]
+                    ]
                 }
                 quiz_data['questions'].append(question_data)
 
@@ -132,6 +144,48 @@ class APIService:
         except Exception as e:
             logger.error(f"Ошибка при получении викторины с ID {quiz_id}: {e}")
             return None
+
+
+    # @staticmethod
+    # def get_quiz_with_questions(quiz_id, language_code='ru'):
+    #     try:
+    #         quiz = Quiz.objects.get(id=quiz_id)
+    #         # questions = Question.objects.filter(topic=quiz.topic)
+    #         questions = Question.objects.filter(topic=quiz.topic)
+    #
+    #         quiz_data = {
+    #             'id': quiz.id,
+    #             # 'title': quiz.name,
+    #             # 'description': quiz.description,
+    #             'title': quiz.topic.name,
+    #             'description': quiz.topic.description,
+    #             'questions': []
+    #         }
+    #
+    #         for question in questions:
+    #             # answers = UserAnswer.objects.filter(question=question)
+    #             choices = Choice.objects.filter(question=question)
+    #             question_data = {
+    #                 'id': question.id,
+    #                 'text': question.text,
+    #                 'answers': [
+    #                     {
+    #                     'id': choice.id,
+    #                     'text': choice.text,
+    #                     'is_correct': choice.is_correct
+    #                     }
+    #                     for choice in choices
+    #                     ]
+    #             }
+    #             quiz_data['questions'].append(question_data)
+    #
+    #         return quiz_data
+    #     except Quiz.DoesNotExist:
+    #         logger.warning(f"Викторина с ID {quiz_id} не найдена")
+    #         return None
+    #     except Exception as e:
+    #         logger.error(f"Ошибка при получении викторины с ID {quiz_id}: {e}")
+    #         return None
 
     @staticmethod
     def register_user(phone_number, full_name, language_code='ru'):
@@ -160,32 +214,78 @@ class APIService:
             logger.error(f"Ошибка при регистрации пользователя: {e}")
             return None
 
-
     @staticmethod
     def save_quiz_results(quiz_id, user_answers, correct_answers, total_questions):
         try:
             quiz = Quiz.objects.get(id=quiz_id)
-
-
             quiz.status = 'completed'
             quiz.score = correct_answers
             quiz.save()
 
-
             for question_index, answer_data in user_answers.items():
-                user_answer = UserAnswer(
-                    quiz=quiz,
-                    question_id=answer_data['question_id'],
-                    choice_id=answer_data['answer_id'],
-                    is_correct=answer_data['is_correct']
-                )
-                user_answer.save()
+                try:
+                    question = Question.objects.get(id=answer_data['question_id'])
+                    selected_choice = Choice.objects.get(id=answer_data['answer_id'])
+
+                    user_answer, created = UserAnswer.objects.update_or_create(
+                        quiz=quiz,
+                        question=question,
+                        defaults={
+                            'selected_choice': selected_choice,
+                            'is_correct': answer_data['is_correct']
+                        }
+                    )
+
+                    if created:
+                        logger.info(f"Создан новый ответ для вопроса {question.id}")
+                    else:
+                        logger.info(f"Обновлен существующий ответ для вопроса {question.id}")
+
+                except Question.DoesNotExist:
+                    logger.error(f"Вопрос с ID {answer_data['question_id']} не найден")
+                    continue
+                except Choice.DoesNotExist:
+                    logger.error(f"Вариант ответа с ID {answer_data['answer_id']} не найден")
+                    continue
+                except Exception as e:
+                    logger.error(f"Ошибка при сохранении ответа на вопрос {answer_data['question_id']}: {e}")
+                    continue
 
             logger.info(f"Сохранены результаты для викторины {quiz_id}: {correct_answers}/{total_questions}")
             return True
+
         except Quiz.DoesNotExist:
             logger.warning(f"Викторина с ID {quiz_id} не найдена при сохранении результатов")
             return False
         except Exception as e:
             logger.error(f"Ошибка при сохранении результатов викторины {quiz_id}: {e}")
             return False
+
+    # @staticmethod
+    # def save_quiz_results(quiz_id, user_answers, correct_answers, total_questions):
+    #     try:
+    #         quiz = Quiz.objects.get(id=quiz_id)
+    #
+    #
+    #         quiz.status = 'completed'
+    #         quiz.score = correct_answers
+    #         quiz.save()
+    #
+    #
+    #         for question_index, answer_data in user_answers.items():
+    #             user_answer = UserAnswer(
+    #                 quiz=quiz,
+    #                 question_id=answer_data['question_id'],
+    #                 choice_id=answer_data['answer_id'],
+    #                 is_correct=answer_data['is_correct']
+    #             )
+    #             user_answer.save()
+    #
+    #         logger.info(f"Сохранены результаты для викторины {quiz_id}: {correct_answers}/{total_questions}")
+    #         return True
+    #     except Quiz.DoesNotExist:
+    #         logger.warning(f"Викторина с ID {quiz_id} не найдена при сохранении результатов")
+    #         return False
+    #     except Exception as e:
+    #         logger.error(f"Ошибка при сохранении результатов викторины {quiz_id}: {e}")
+    #         return False

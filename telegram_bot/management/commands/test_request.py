@@ -1,4 +1,3 @@
-
 from django.core.management.base import BaseCommand
 from zein_app.models import Request
 from telegram_bot.services.bot_service import send_telegram_notification

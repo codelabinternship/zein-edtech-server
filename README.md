@@ -34,7 +34,7 @@ A Django application with a Telegram bot.
    # Django settings
    DEBUG=True
    SECRET_KEY=django-insecure-mj6g9t0h$6@o-u813a=f0&%lb9-p(^u1%yk0@3fxl+qj46+$af
-   DJANGO_SETTINGS_MODULE=bot_zein.settings
+   DJANGO_SETTINGS_MODULE=zeinedtech.settings
    DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 
    # Database settings for PostgreSQL
@@ -117,9 +117,9 @@ If you prefer not to use the Blueprint:
 2. Create a Web Service:
    - Connect to your repository
    - Set the build command: `pip install -r requirements.txt && python manage.py collectstatic --noinput`
-   - Set the start command: `gunicorn bot_zein.wsgi:application --bind 0.0.0.0:$PORT`
+   - Set the start command: `gunicorn zeinedtech.wsgi:application --bind 0.0.0.0:$PORT`
    - Set environment variables:
-     - `DJANGO_SETTINGS_MODULE=bot_zein.settings_prod`
+     - `DJANGO_SETTINGS_MODULE=zeinedtech.settings_prod`
      - `DEBUG=False`
      - `SECRET_KEY` (generate a random secure key)
      - `DJANGO_ALLOWED_HOSTS=.onrender.com,your-app-name.onrender.com`
@@ -140,5 +140,6 @@ If you prefer not to use the Blueprint:
 - `docker-compose.yml`: For local development with Docker
 - `.dockerignore`: Excludes unnecessary files from Docker build
 - `render.yaml`: Configuration for Render deployment
-- `bot_zein/settings_prod.py`: Production settings
+- `zeinedtech/settings_prod.py`: Production settings
 # zein-edtech-server
+# zein-server-v2

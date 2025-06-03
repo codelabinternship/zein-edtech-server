@@ -37,6 +37,7 @@ class CustomUser(AbstractUser):
     )
     full_name = models.CharField(max_length=255)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='admin')
+    phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -53,30 +54,29 @@ class BadPassword(models.Model):
         return self.password
 
 
-from django.conf import settings
 
 
-class History(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="histories"
-    )
-    total_question = models.PositiveIntegerField()
-    correct = models.PositiveIntegerField()
-    failed = models.PositiveIntegerField(editable=False)
-    score = models.FloatField(editable=False)
-    percent = models.FloatField(editable=False)
-
-    def save(self, *args, **kwargs):
-        self.failed = self.total_question - self.correct
-        self.score = float(self.correct)
-        if self.total_question > 0:
-            self.percent = round((self.correct / self.total_question) * 100, 1)
-        else:
-            self.percent = 0.0
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"History of {self.user.username} - Score: {self.score}"
+# class History(models.Model):
+#     user = models.ForeignKey(
+#         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="histories"
+#     )
+#     total_question = models.PositiveIntegerField()
+#     correct = models.PositiveIntegerField()
+#     failed = models.PositiveIntegerField(editable=False)
+#     score = models.FloatField(editable=False)
+#     percent = models.FloatField(editable=False)
+#
+#     def save(self, *args, **kwargs):
+#         self.failed = self.total_question - self.correct
+#         self.score = float(self.correct)
+#         if self.total_question > 0:
+#             self.percent = round((self.correct / self.total_question) * 100, 1)
+#         else:
+#             self.percent = 0.0
+#         super().save(*args, **kwargs)
+#
+#     def __str__(self):
+#         return f"History of {self.user.username} - Score: {self.score}"
 
 
 # class Question(models.Model):
@@ -126,7 +126,6 @@ class Topic(models.Model):
     )
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to="topics/", blank=True, null=True,storage=CustomS3Storage)
     created_at = models.DateTimeField(auto_now_add=True)
     # is_active = models.BooleanField(default=True)
 
@@ -153,6 +152,25 @@ class Question(models.Model):
 
     class Meta:
         ordering = ["topic", "created_at"]
+
+
+
+
+from django.conf import settings
+
+class QuizHistory(models.Model):
+    user = models.ForeignKey("zein_app.CustomUser", on_delete=models.CASCADE)
+    subject = models.CharField(max_length=255)
+    topic = models.CharField(max_length=255)
+    # questions = models.ManyToManyField(Question,related_name="questions")
+    correct_answers = models.IntegerField()
+    total_questions = models.IntegerField(default=0)
+    percentage = models.FloatField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} | {self.topic} | {self.percentage}%"
+
 
 
 class Choice(models.Model):
@@ -193,9 +211,8 @@ class Quiz(models.Model):
     class Meta:
         ordering = ["-started_at"]
 
-
 class UserAnswer(models.Model):
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="answers")
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     selected_choice = models.ForeignKey(Choice, on_delete=models.CASCADE)
     is_correct = models.BooleanField(default=False)
@@ -205,8 +222,23 @@ class UserAnswer(models.Model):
         return f"{self.quiz.user.username} - {self.question.text[:30]}"
 
     class Meta:
-        ordering = ["quiz", "answered_at"]
-        unique_together = ["quiz", "question"]
+        ordering = ['quiz', 'answered_at']
+        unique_together = ['quiz', 'question']
+
+
+# class UserAnswer(models.Model):
+#     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="answers")
+#     question = models.ForeignKey(Question, on_delete=models.CASCADE)
+#     selected_choice = models.ForeignKey(Choice, on_delete=models.CASCADE)
+#     is_correct = models.BooleanField(default=False)
+#     answered_at = models.DateTimeField(auto_now_add=True)
+#
+#     def __str__(self):
+#         return f"{self.quiz.user.username} - {self.question.text[:30]}"
+#
+#     class Meta:
+#         ordering = ["quiz", "answered_at"]
+#         unique_together = ["quiz", "question"]
 
 
 # class Topic(models.Model):

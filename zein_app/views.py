@@ -78,7 +78,6 @@ class DashboardView(APIView):
 from .models import (
     CustomUser,
     BadPassword,
-    History,
     ResultDetail,
     Subject,
     Topic,
@@ -91,7 +90,6 @@ from .models import (
 from .serializers import (
     CustomUserSerializer,
     BadPasswordSerializer,
-    HistorySerializer,
     QuestionSerializer,
     UserAnswerSerializer,
     CourseSerializer,
@@ -123,9 +121,9 @@ class BadPasswordViewSet(viewsets.ModelViewSet):
 #     ordering = ['-created_at']
 
 
-class HistoryViewSet(viewsets.ModelViewSet):
-    queryset = History.objects.all()
-    serializer_class = HistorySerializer
+# class HistoryViewSet(viewsets.ModelViewSet):
+#     queryset = History.objects.all()
+#     serializer_class = HistorySerializer
 
 
 # class SubjectViewSet(viewsets.ModelViewSet):
@@ -252,6 +250,12 @@ class QuestionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(topic_id=topic_id)
         return queryset
 
+from zein_app.models import QuizHistory
+from zein_app.serializers import QuizHistorySerializer
+
+class QuizHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = QuizHistory.objects.all().order_by("-created_at")
+    serializer_class = QuizHistorySerializer
 
 class QuizAPIView(APIView):
     # permission_classes = [permissions.IsAuthenticated]

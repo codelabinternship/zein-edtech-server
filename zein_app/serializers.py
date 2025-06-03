@@ -7,7 +7,6 @@ from .mixins import ImageDeleteMixin
 from .models import (
     BadPassword,
     CustomUser,
-    History,
     Question,
     Choice,
     Subject,
@@ -85,11 +84,11 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(required=True)
 
 
-class HistorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = History
-        fields = "__all__"
-        read_only_fields = ("failed", "score", "percent")
+# class HistorySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = History
+#         fields = "__all__"
+#         read_only_fields = ("failed", "score", "percent")
 
 
 class SubjectSerializer(serializers.ModelSerializer):
@@ -120,7 +119,6 @@ class TopicListSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "description",
-            "image",
             "question_count",
             "subject",
             "created_at",
@@ -193,6 +191,13 @@ class QuestionSerializer(ImageDeleteMixin, serializers.ModelSerializer):
 
         return instance
 
+from zein_app.models import QuizHistory
+
+class QuizHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuizHistory
+        fields = '__all__'
+
 
 class QuestionListSerializer(serializers.ModelSerializer):
     choices = ChoiceSerializer(many=True, read_only=True)
@@ -251,7 +256,6 @@ class TopicDetailSerializer(ImageDeleteMixin, serializers.ModelSerializer):
             "id",
             "name",
             "description",
-            "image",
             "questions",
             "subject",
             "subject_id",

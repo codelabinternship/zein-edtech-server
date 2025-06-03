@@ -5,10 +5,10 @@ services:
     runtime: python
     plan: starter
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    startCommand: gunicorn bot_zein.wsgi:application --bind 0.0.0.0:$PORT
+    startCommand: gunicorn zeinedtech.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: DJANGO_SETTINGS_MODULE
-        value: bot_zein.settings_prod
+        value: zeinedtech.settings_prod
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
@@ -31,7 +31,7 @@ services:
     startCommand: python manage.py run_bot
     envVars:
       - key: DJANGO_SETTINGS_MODULE
-        value: bot_zein.settings_prod
+        value: zeinedtech.settings_prod
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
