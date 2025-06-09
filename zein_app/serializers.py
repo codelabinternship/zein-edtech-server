@@ -489,7 +489,6 @@ class TelegramBotSerializer(serializers.ModelSerializer):
 
 
 class RequestSerializer(serializers.ModelSerializer):
-    exam_score = serializers.DecimalField(max_digits=5, decimal_places=2)
     class Meta:
         model = Request
         fields = ["id", "name", "phone_number", "created_at"]
@@ -497,12 +496,14 @@ class RequestSerializer(serializers.ModelSerializer):
 
 
 class ResultDetailSerializer(serializers.ModelSerializer):
-    score = serializers.DecimalField(max_digits=5, decimal_places=2)
+   
     class Meta:
         model = ResultDetail
         fields = ["component", "score"]
-
-
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep["score"] = f"{float(instance.score):.1f}"
+        return rep  
 class ResultSerializer(ImageDeleteMixin, serializers.ModelSerializer):
     details = serializers.JSONField(write_only=True)
 
@@ -548,15 +549,12 @@ class ResultSerializer(ImageDeleteMixin, serializers.ModelSerializer):
             except json.JSONDecodeError:
                 raise serializers.ValidationError({"details": "Invalid JSON format"})
 
-        # Update the result instance
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
         if details_data is not None:
-            # Delete existing details
             instance.details.all().delete()
-            # Create new details
             for detail in details_data:
                 ResultDetail.objects.create(result=instance, **detail)
 
@@ -564,8 +562,14 @@ class ResultSerializer(ImageDeleteMixin, serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['details'] = ResultDetailSerializer(instance.details.all(), many=True).data
+
+        # Format exam_score as "8.0", "7.5", etc.
+        if instance.exam_score is not None:
+            representation["exam_score"] = f"{float(instance.exam_score):.1f}"
+
+        representation["details"] = ResultDetailSerializer(instance.details.all(), many=True).data
         return representation
+
     
 
 
