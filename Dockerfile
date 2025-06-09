@@ -17,16 +17,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . .
 
+# Copy start.sh script and give execution permission
+COPY start.sh .
+RUN chmod +x start.sh
+
 # Set Django settings module to production settings
 ENV DJANGO_SETTINGS_MODULE=zeinedtech.settings_prod
 ENV DJANGO_SKIP_INIT_USERS=1
 
 # Create staticfiles directory
 RUN mkdir -p staticfiles
-
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
 
 # Expose port
 EXPOSE 8000
@@ -35,5 +35,5 @@ EXPOSE 8000
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Run gunicorn
-CMD gunicorn zeinedtech.wsgi:application --bind 0.0.0.0:$PORT
+# Start backend + bot via shell script
+CMD ["./start.sh"]
