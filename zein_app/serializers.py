@@ -489,6 +489,7 @@ class TelegramBotSerializer(serializers.ModelSerializer):
 
 
 class RequestSerializer(serializers.ModelSerializer):
+    exam_score = serializers.DecimalField(max_digits=5, decimal_places=2)
     class Meta:
         model = Request
         fields = ["id", "name", "phone_number", "created_at"]
@@ -496,6 +497,7 @@ class RequestSerializer(serializers.ModelSerializer):
 
 
 class ResultDetailSerializer(serializers.ModelSerializer):
+    score = serializers.DecimalField(max_digits=5, decimal_places=2)
     class Meta:
         model = ResultDetail
         fields = ["component", "score"]
@@ -564,6 +566,7 @@ class ResultSerializer(ImageDeleteMixin, serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation['details'] = ResultDetailSerializer(instance.details.all(), many=True).data
         return representation
+    
 
 
 class TelegramSettingsSerializer(serializers.ModelSerializer):
