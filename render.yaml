@@ -1,5 +1,4 @@
 services:
-  # Web service for Django application
   - type: web
     name: quiz-bot-app
     runtime: python
@@ -19,14 +18,28 @@ services:
         value: "False"
       - key: DJANGO_ALLOWED_HOSTS
         value: .onrender.com,localhost
+
+      # Database from .env
+      - key: DB_ENGINE
+        value: django.db.backends.postgresql
+      - key: DB_NAME
+        value: zein
+      - key: DB_USER
+        value: zein_user
+      - key: DB_PASSWORD
+        value: OVjv3hMr45rd9WSegAYxlXSR1UmLLg0e
+      - key: DB_HOST
+        value: dpg-d0nlpr2li9vc73a211a0-a.oregon-postgres.render.com
+      - key: DB_PORT
+        value: "5432"
+
+      # Optional if your project uses DATABASE_URL
       - key: DATABASE_URL
-        fromDatabase:
-          name: quiz-bot-db
-          property: connectionString
+        value: postgresql://zein_user:OVjv3hMr45rd9WSegAYxlXSR1UmLLg0e@dpg-d0nlpr2li9vc73a211a0-a.oregon-postgres.render.com/zein
+
       - key: TELEGRAM_BOT_TOKEN
         sync: false
 
-  # Background worker for Telegram bot
   - type: worker
     name: quiz-bot-worker
     runtime: python
@@ -40,13 +53,23 @@ services:
         generateValue: true
       - key: DEBUG
         value: "False"
+
+      # Database from .env
+      - key: DB_ENGINE
+        value: django.db.backends.postgresql
+      - key: DB_NAME
+        value: zein
+      - key: DB_USER
+        value: zein_user
+      - key: DB_PASSWORD
+        value: OVjv3hMr45rd9WSegAYxlXSR1UmLLg0e
+      - key: DB_HOST
+        value: dpg-d0nlpr2li9vc73a211a0-a.oregon-postgres.render.com
+      - key: DB_PORT
+        value: "5432"
+
       - key: DATABASE_URL
-        fromDatabase:
-          name: quiz-bot-db
-          property: connectionString
+        value: postgresql://zein_user:OVjv3hMr45rd9WSegAYxlXSR1UmLLg0e@dpg-d0nlpr2li9vc73a211a0-a.oregon-postgres.render.com/zein
+
       - key: TELEGRAM_BOT_TOKEN
         sync: false
-
-databases:
-  - name: quiz-bot-db
-    plan: starter
