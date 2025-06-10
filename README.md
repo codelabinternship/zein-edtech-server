@@ -33,17 +33,17 @@ A Django application with a Telegram bot.
    ```
    # Django settings
    DEBUG=True
-   SECRET_KEY=django-insecure-mj6g9t0h$6@o-u813a=f0&%lb9-p(^u1%yk0@3fxl+qj46+$af
+   SECRET_KEY=***
    DJANGO_SETTINGS_MODULE=zeinedtech.settings
    DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 
    # Database settings for PostgreSQL
    DB_ENGINE=django.db.backends.postgresql
-   DB_NAME=clonezein
-   DB_USER=postgres
-   DB_PASSWORD=root
-   DB_HOST=localhost
-   DB_PORT=5432
+   DB_NAME=****
+   DB_USER=****
+   DB_PASSWORD=***
+   DB_HOST=****
+   DB_PORT=****
 
    # PostgreSQL for Docker Compose
    POSTGRES_USER=postgres
