@@ -107,48 +107,49 @@ from django.contrib.auth.models import AbstractUser
 
 
 class Subject(models.Model):
-    name = models.CharField(max_length=100)
+    name_uz = models.CharField(max_length=100,default="")
+    name_ru = models.CharField(max_length=100,default="")
     title_ru = models.TextField(max_length=255)
     description = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to="subjects/", blank=True, null=True,storage=CustomS3Storage)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return self.name_ru
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["name_ru"]
 
 
 class Topic(models.Model):
     subject = models.ForeignKey(
         Subject, on_delete=models.CASCADE, related_name="topics"
     )
-    name = models.CharField(max_length=100)
+    name_uz = models.CharField(max_length=100,default="")
+    name_ru = models.CharField(max_length=100,default="")
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    # is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.subject.name} - {self.name}"
+        return f"{self.subject.name_ru} - {self.name_ru}"
 
     class Meta:
-        ordering = ["subject", "name"]
+        ordering = ["subject", "name_uz"]
 
 
 class Question(models.Model):
-    # topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name='questions', default=1)
     topic = models.ForeignKey(
         Topic, on_delete=models.CASCADE, related_name="questions", null=True, blank=True
     )
-    text = models.TextField()
+    text_uz = models.TextField(default="")
+    text_ru = models.TextField(default="")
     explanation = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to="questions/", blank=True, null=True,storage=CustomS3Storage)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.text[:50]
+        return self.text_ru[:50]
 
     class Meta:
         ordering = ["topic", "created_at"]
@@ -177,7 +178,8 @@ class Choice(models.Model):
     question = models.ForeignKey(
         Question, on_delete=models.CASCADE, related_name="choices"
     )
-    text = models.CharField(max_length=255)
+    text_uz = models.CharField(max_length=255,default="")
+    text_ru = models.CharField(max_length=255,default="")
     is_correct = models.BooleanField(default=False)
 
     def __str__(self):
@@ -219,7 +221,7 @@ class UserAnswer(models.Model):
     answered_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.quiz.user.username} - {self.question.text[:30]}"
+        return f"{self.quiz.user.username} - {self.question.text_ru[:30]}"
 
     class Meta:
         ordering = ['quiz', 'answered_at']

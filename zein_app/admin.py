@@ -92,23 +92,45 @@ class ChoiceInline(admin.TabularInline):
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ('text', 'topic', 'get_subject')
+    list_display = ('text_ru', 'text_uz', 'topic', 'get_subject')
     list_filter = ('topic__subject', 'topic')
-    search_fields = ('text', 'topic__name', 'topic__subject__name')
+    search_fields = ('text_uz', 'text_ru', 'topic__name_uz', 'topic__name_ru', 'topic__subject__name_uz', 'topic__subject__name_ru')
     inlines = [ChoiceInline]
+    fieldsets = (
+        ('Uzbek', {
+            'fields': ('text_uz',),
+        }),
+        ('Russian', {
+            'fields': ('text_ru',),
+        }),
+        ('Other', {
+            'fields': ('topic', 'explanation', 'image'),
+        }),
+    )
 
     def get_subject(self, obj):
         if obj.topic and obj.topic.subject:
-            return obj.topic.subject.name
+            return obj.topic.subject.name_ru
         return "-"
     get_subject.short_description = 'Предмет'
 
 
 @admin.register(Topic)
 class TopicAdmin(admin.ModelAdmin):
-    list_display = ('name', 'subject', 'get_question_count')
+    list_display = ('name_ru', 'name_uz', 'subject', 'get_question_count')
     list_filter = ('subject',)
-    search_fields = ('name', 'subject__name')
+    search_fields = ('name_uz', 'name_ru', 'subject__name_uz', 'subject__name_ru')
+    fieldsets = (
+        ('Uzbek', {
+            'fields': ('name_uz',),
+        }),
+        ('Russian', {
+            'fields': ('name_ru',),
+        }),
+        ('Other', {
+            'fields': ('subject', 'description'),
+        }),
+    )
 
     def get_question_count(self, obj):
         return obj.questions.count()
@@ -117,8 +139,19 @@ class TopicAdmin(admin.ModelAdmin):
 
 @admin.register(Subject)
 class SubjectAdmin(admin.ModelAdmin):
-    list_display = ('name', 'get_topic_count')
-    search_fields = ('name',)
+    list_display = ('name_ru', 'name_uz', 'get_topic_count')
+    search_fields = ('name_uz', 'name_ru')
+    fieldsets = (
+        ('Uzbek', {
+            'fields': ('name_uz',),
+        }),
+        ('Russian', {
+            'fields': ('name_ru',),
+        }),
+        ('Other', {
+            'fields': ('title_ru', 'description', 'image'),
+        }),
+    )
 
     def get_topic_count(self, obj):
         return obj.topics.count()

@@ -33,8 +33,8 @@ from .views import (
 
 router = DefaultRouter()
 router.register(r"subjects", SubjectViewSet)
-router.register(r"topics", TopicViewSet)
-router.register(r"questions", QuestionViewSet)
+router.register(r"topics", TopicViewSet,basename="topics")
+router.register(r"questions", QuestionViewSet,basename="questions")
 router.register(r'quiz-history', QuizHistoryViewSet, basename='history')
 router.register(r"users", CustomUserViewSet)
 router.register(r"bad-passwords", BadPasswordViewSet)
