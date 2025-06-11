@@ -802,7 +802,7 @@ TEXTS = {
         "choose_subject": "Выберите предмет:",
         "choose_lesson": "Выберите урок:",
         "start_quiz": "Начать викторину",
-        "quiz_info": "Информация о тесте:\n\nНазвание: {}\nОписание: {}\nКоличество вопросов: {}",
+        "quiz_info": "Информация о тесте:\n\nТема: {}\nКоличество вопросов: {}",
         "profile_info": "👤 Профиль:\nИмя: {}\nUsername: @{}\nТелефон: {}\n\n📊 Результаты:\n{}"
     },
 }
@@ -820,7 +820,7 @@ TEXTS["uz"] = {
     "choose_subject": "Fan tanlang:",
     "choose_lesson": "Mavzuni tanlang:",
     "start_quiz": "Testni boshlash",
-    "quiz_info": "Test haqida:\n\nNomi: {}\nTavsifi: {}\nSavollar soni: {}",
+    "quiz_info": "Test haqida ma'lumot:\n\nMavzu: {}\nSavollar soni: {}",
     "profile_info": "👤 Profil:\nIsm: {}\nUsername: @{}\nTelefon: {}\n\n📊 Natijalar:\n{}"
 }
 
@@ -841,7 +841,8 @@ class BotService:
                 FULL_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.name_handler)],
                 SUBJECT_SELECTION: [
                     CallbackQueryHandler(self.subject_handler, pattern=r"^subject_"),
-                    CallbackQueryHandler(self.restart_subjects_handler, pattern=r"^restart_subjects$")
+                    CallbackQueryHandler(self.restart_subjects_handler, pattern=r"^restart_subjects$"),
+                    CallbackQueryHandler(self.subject_handler, pattern=r"^subject_\d+$"),
                 ],
                 TOPIC_SELECTION: [CallbackQueryHandler(self.topic_handler, pattern=r"^topic_")],
                 QUIZ_SELECTION: [
@@ -1155,7 +1156,7 @@ class BotService:
 
             @sync_to_async
             def get_or_create_quiz():
-                return APIService.get_or_create_quiz(app_user_id, topic_id)
+                return APIService.get_or_create_quiz(app_user_id, topic_id,language_code=lang_code)
 
             quiz = await get_or_create_quiz()
             if not quiz:
@@ -1172,10 +1173,9 @@ class BotService:
             subj_title, top_title = await get_titles(context.user_data["subject_id"], topic_id, lang_code)
             context.user_data["quiz_subject"] = subj_title
             context.user_data["quiz_topic"] = top_title
-
+            print(f"Quiz created with ID: {quiz.id} for subject {subj_title} and topic {top_title}")
             quiz_info = TEXTS[lang_code]["quiz_info"].format(
-                getattr(quiz, 'name', ''),
-                getattr(quiz, 'description', ''),
+                top_title,
                 quiz.total_questions
             )
             keyboard = [
@@ -1764,7 +1764,7 @@ class BotService:
             )
 
             keyboard = [
-                [InlineKeyboardButton("Выбрать другой предмет", callback_data="restart_subjects")],
+                # [InlineKeyboardButton("Выбрать другой предмет", callback_data="restart_subjects")],
                 [InlineKeyboardButton("Пройти этот тест снова", callback_data=f"restart_quiz_{quiz_id}")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)

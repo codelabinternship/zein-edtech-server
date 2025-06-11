@@ -16,7 +16,7 @@ class APIService:
             return [
                 {
                     'id': subject.id,
-                    'title': subject.name,
+                    'title': subject.name_uz if language_code == 'ru' else subject.name_ru,
                     'description': subject.description
                 }
                 for subject in subjects
@@ -32,7 +32,7 @@ class APIService:
             return [
                 {
                     'id': topic.id,
-                    'title': topic.name,
+                    'title': topic.name_ru if language_code == 'ru' else topic.name_uz,
                     'description': topic.description
                 }
                 for topic in topics
@@ -45,7 +45,7 @@ class APIService:
     def get_subject_by_id(subject_id, language_code='ru'):
         try:
             subject = Subject.objects.get(id=subject_id)
-            return subject.name
+            return subject.name_ru if language_code == 'ru' else subject.name_uz
         except Subject.DoesNotExist:
             return 'Неизвестный предмет'
 
@@ -53,12 +53,12 @@ class APIService:
     def get_topic_by_id(topic_id, language_code='ru'):
         try:
             topic = Topic.objects.get(id=topic_id)
-            return topic.name
+            return topic.name_ru if language_code == 'ru' else topic.name_uz
         except Topic.DoesNotExist:
             return 'Неизвестная тема'
 
     @staticmethod
-    def get_or_create_quiz(user_id: int, topic_id: int) -> Quiz:
+    def get_or_create_quiz(user_id: int, topic_id: int,language_code='ru') -> Quiz:
         User = get_user_model()
         try:
             user = User.objects.get(id=user_id)
@@ -77,7 +77,9 @@ class APIService:
                 # 'status': Quiz.Status.IN_PROGRESS,
                 # 'total_questions': Question.objects.filter(topic=topic).count()
                 'status': 'in_progress',
-                'total_questions': Question.objects.filter(topic=topic).count()
+                'total_questions': Question.objects.filter(topic=topic).count(),
+                'name': topic.name_ru if language_code == 'ru' else topic.name_uz,
+                'description': topic.description
             }
         )
 
@@ -96,7 +98,7 @@ class APIService:
                     'id': quiz.id,
                     # 'title': getattr(quiz, 'title', ''),
                     # 'description': getattr(quiz, 'description', ''),
-                    'title': quiz.topic.name,
+                    'title': quiz.topic.name_ru if language_code == 'ru' else quiz.topic.name_uz,
                     'description': quiz.topic.description,
                     # 'questions_count': quiz.questions.count()
                     'questions_count': Question.objects.filter(topic=quiz.topic).count()
@@ -115,7 +117,7 @@ class APIService:
 
             quiz_data = {
                 'id': quiz.id,
-                'title': quiz.topic.name,
+                'title': quiz.topic.name_ru if language_code == 'ru' else quiz.topic.name_uz,
                 'description': quiz.topic.description,
                 'questions': []
             }
