@@ -125,13 +125,13 @@ class TopicListSerializer(serializers.ModelSerializer):
 class ChoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Choice
-        fields = ["id", "text_uz", "text_ru", "is_correct"]
+        fields = ["id", "text", "is_correct"]
 
 
 class AdminChoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Choice
-        fields = ["id", "text_uz", "text_ru", "is_correct"]
+        fields = ["id", "text", "is_correct"]
 
 
 class QuestionSerializer(ImageDeleteMixin, serializers.ModelSerializer):
@@ -143,8 +143,7 @@ class QuestionSerializer(ImageDeleteMixin, serializers.ModelSerializer):
         model = Question
         fields = [
             "id",
-            "text_uz",
-            "text_ru",
+            "text",
             "image",
             "choices",
             "explanation",
@@ -152,14 +151,6 @@ class QuestionSerializer(ImageDeleteMixin, serializers.ModelSerializer):
             "topic",
             "topic_id",
         ]
-
-    def validate_correct_choices(self, value):
-        allowed_choices = {"A", "B", "C", "D"}
-        if not all(choice in allowed_choices for choice in value):
-            raise serializers.ValidationError(
-                "Each correct choice must be one of 'A', 'B', 'C', or 'D'."
-            )
-        return value
 
     def create(self, validated_data):
         choices_data = validated_data.pop("choices")
@@ -196,15 +187,12 @@ class QuestionListSerializer(serializers.ModelSerializer):
     choices = ChoiceSerializer(many=True, read_only=True)
     topic = TopicListSerializer(many=False, read_only=True)
     topic_id = serializers.IntegerField(required=True, allow_null=False)
-    text = serializers.SerializerMethodField()
 
     class Meta:
         model = Question
         fields = [
             "id",
             "text",
-            "text_uz",
-            "text_ru",
             "explanation",
             "image",
             "choices",
@@ -214,38 +202,17 @@ class QuestionListSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-    def get_text(self, obj):
-        lang = self.context.get("language")
-        if not lang:
-            return None
-        return getattr(obj, f"text_{lang}")
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        lang = self.context.get("language")
-        if lang:
-            # If language is specified, only return the 'text' field
-            data.pop('text_uz', None)
-            data.pop('text_ru', None)
-        else:
-            # If no language is specified, remove the 'text' field
-            data.pop('text', None)
-        return data
-
 
 class QuestionDetailSerializer(serializers.ModelSerializer):
     choices = ChoiceSerializer(many=True, read_only=True)
     topic = TopicListSerializer(many=False, read_only=True)
     topic_id = serializers.IntegerField(required=True, allow_null=False)
-    text = serializers.SerializerMethodField()
 
     class Meta:
         model = Question
         fields = [
             "id",
             "text",
-            "text_uz",
-            "text_ru",
             "image",
             "choices",
             "topic",
@@ -253,24 +220,6 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-
-    def get_text(self, obj):
-        lang = self.context.get("language")
-        if not lang:
-            return None
-        return getattr(obj, f"text_{lang}")
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        lang = self.context.get("language")
-        if lang:
-            # If language is specified, only return the 'text' field
-            data.pop('text_uz', None)
-            data.pop('text_ru', None)
-        else:
-            # If no language is specified, remove the 'text' field
-            data.pop('text', None)
-        return data
 
 
 class AdminQuestionSerializer(serializers.ModelSerializer):
@@ -751,37 +700,3 @@ class TopicLanguageSerializer(serializers.Serializer):
 
     def get_name(self, obj):
         return getattr(obj, f"name_{self.language}")
-class ChoiceLanguageSerializer(serializers.Serializer):
-    """
-    Serializer for displaying Choices in a specific language.
-    Dynamically changes field names based on language.
-    """
-    id = serializers.IntegerField(read_only=True)
-    text = serializers.SerializerMethodField()
-    is_correct = serializers.BooleanField()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.language = self.context.get("language", "uz")
-
-    def get_text(self, obj):
-        return getattr(obj, f"text_{self.language}")
-
-class QuestionLanguageSerializer(serializers.Serializer):
-    """
-    Serializer for displaying Questions in a specific language.
-    Dynamically changes field names based on language.
-    """
-    id = serializers.IntegerField(read_only=True)
-    text = serializers.SerializerMethodField()
-    explanation = serializers.CharField()
-    image = serializers.ImageField()
-    choices = ChoiceLanguageSerializer(many=True, read_only=True)
-    topic = TopicLanguageSerializer(read_only=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.language = self.context.get("language", "uz")
-
-    def get_text(self, obj):
-        return getattr(obj, f"text_{self.language}")

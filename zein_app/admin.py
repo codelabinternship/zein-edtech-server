@@ -92,19 +92,13 @@ class ChoiceInline(admin.TabularInline):
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ('text_ru', 'text_uz', 'topic', 'get_subject')
+    list_display = ('text', 'topic', 'get_subject')
     list_filter = ('topic__subject', 'topic')
-    search_fields = ('text_uz', 'text_ru', 'topic__name_uz', 'topic__name_ru', 'topic__subject__name_uz', 'topic__subject__name_ru')
+    search_fields = ('text', 'topic__name_uz', 'topic__name_ru', 'topic__subject__name_uz', 'topic__subject__name_ru')
     inlines = [ChoiceInline]
     fieldsets = (
-        ('Uzbek', {
-            'fields': ('text_uz',),
-        }),
-        ('Russian', {
-            'fields': ('text_ru',),
-        }),
-        ('Other', {
-            'fields': ('topic', 'explanation', 'image'),
+        ('Question', {
+            'fields': ('text', 'topic', 'explanation', 'image'),
         }),
     )
 

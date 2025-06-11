@@ -277,27 +277,11 @@ class QuestionViewSet(viewsets.ModelViewSet):
     ordering = ["created_at"]
 
     def get_serializer_class(self):
-        """
-        Return appropriate serializer class based on lang parameter.
-        """
-        lang = self.request.query_params.get("lang")
-        if lang in ["uz", "ru"]:
-            return QuestionLanguageSerializer
         if self.action in ["create", "update", "partial_update"]:
             return QuestionSerializer
         if self.action == "list":
             return QuestionListSerializer
         return QuestionDetailSerializer
-
-    def get_serializer_context(self):
-        """
-        Add language to serializer context.
-        """
-        context = super().get_serializer_context()
-        lang = self.request.query_params.get("lang")
-        if lang in ["uz", "ru"]:
-            context["language"] = lang
-        return context
 
     def get_queryset(self):
         queryset = Question.objects.all()
